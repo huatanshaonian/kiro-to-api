@@ -1,0 +1,6 @@
+data: {"type":"response.output_text.delta","output_index":0,"content_index":0,"delta":"fixture_external_value"}
+
+data: {"type":"response.output_text.done","output_index":0,"content_index":0}
+
+data: {"type":"response.completed","response":{"output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"fixture_external_value"}]}]}}
+

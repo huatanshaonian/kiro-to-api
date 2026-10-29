@@ -1,0 +1,26 @@
+{
+  "name": "kiro-local-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Anthropic Messages middleware for Claude Code and OpenCode using the installed Kiro CLI",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "kiro-api": "src/manage.mjs", "cc-kiro": "src/cc-kiro.mjs", "opencode-kiro": "src/opencode-kiro.mjs" },
+  "scripts": {
+    "test": "node --test tests/protocol.test.mjs tests/infrastructure.test.mjs tests/paths.test.mjs",
+    "check": "node tools/check-source.mjs",
+    "audit": "node tools/audit-tree.mjs",
+    "start": "node src/manage.mjs start",
+    "status": "node src/manage.mjs status",
+    "stop": "node src/manage.mjs stop",
+    "probe": "node tools/probe-model.mjs",
+    "test:cc": "node tests/live/cc.mjs --full",
+    "test:opencode": "node tests/live/opencode.mjs --launcher",
+    "test:files": "node tests/live/file-tools.mjs",
+    "test:http": "node tests/live/http.mjs",
+    "test:routing": "node tests/live/routing.mjs",
+    "test:compact:cc": "node tests/live/cc-compact.mjs",
+    "test:compact:opencode": "node tests/live/opencode-compact.mjs",
+    "verify:live": "node tools/verify-live.mjs"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "protocol-probe",
+  "description": "No-tools bootstrap for a transport-only function-calling probe",
+  "prompt": "This is a transport bootstrap. Reply BOOTSTRAP_OK without using any tools.",
+  "tools": [],
+  "resources": [],
+  "includeMcpJson": false,
+  "includePowers": false,
+  "permissions": {
+    "rules": [{ "capability": "all", "effect": "deny" }]
+  }
+}

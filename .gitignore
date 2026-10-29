@@ -1,0 +1,32 @@
+# Runtime data should normally live outside the checkout. These rules also
+# protect a developer who explicitly chooses a directory inside the checkout.
+node_modules/
+runtime/
+data/
+tmp/
+test-results/
+opencode-runtime/
+backups/
+*.log
+*.jsonl
+gateway-state.json
+owned-server.json
+reasoning-state.json*
+cc-routing-settings.json
+local-api-key
+latest-*-test.json
+latest-result.json
+verification.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+auth.json
+credentials.json
+.DS_Store
+Thumbs.db
+assets/bootstrap/.kiro/*
+!assets/bootstrap/.kiro/agents/
+assets/bootstrap/.kiro/agents/*
+!assets/bootstrap/.kiro/agents/protocol-probe.json

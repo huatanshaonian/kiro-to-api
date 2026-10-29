@@ -1,0 +1,12 @@
+data: {"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_fixture","call_id":"call_fixture","name":"lookup_probe","arguments":""}}
+
+data: {"type":"response.function_call_arguments.delta","item_id":"fc_fixture","delta":"{\"key\":"}
+
+data: {"type":"response.function_call_arguments.delta","item_id":"fc_fixture","delta":"\"fixture_key\"}"}
+
+data: {"type":"response.function_call_arguments.done","item_id":"fc_fixture","arguments":"{\"key\":\"fixture_key\"}"}
+
+data: {"type":"response.output_item.done","item":{"type":"function_call","id":"fc_fixture","call_id":"call_fixture","name":"lookup_probe","arguments":"{\"key\":\"fixture_key\"}"}}
+
+data: {"type":"response.completed","response":{"output":[{"type":"function_call","id":"fc_fixture","call_id":"call_fixture","name":"lookup_probe","arguments":"{\"key\":\"fixture_key\"}"}]}}
+

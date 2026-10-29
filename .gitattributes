@@ -1,0 +1,8 @@
+* text=auto
+/.gitattributes text eol=lf
+/.gitignore text eol=lf
+*.mjs text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.sse text eol=lf whitespace=-blank-at-eof
+*.cmd text eol=crlf

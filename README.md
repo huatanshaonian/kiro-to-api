@@ -86,7 +86,10 @@ PowerShell 若因执行策略阻止 `npm.ps1`，可将示例中的 `npm` 换成
 - reasoning envelope 按模型和调用 ID 有限持久化：24 小时、1000 项、32 MB。
 - 当前上游拒绝自定义 system；系统内容作为用户上下文传入，优先级不等价。
 - 缓存命中不可观测，token 和客户端费用显示是估算；上游 credits 单独记录。
-- 图片/文档、完整 thinking/effort、上游输出长度限制和 native compact 未完成。
+- 支持内联 base64 PNG/JPEG/GIF/WebP，包括图片工具结果的历史重放及 compact。
+- 图片工具结果保留调用关联、文字及原图，原图标注为不可信工具附件后投影到上游用户图片输入。
+- 图片上下文按每张 4096 tokens 的本地估算预留，不把 base64 计为普通文本；不是测定的视觉用量。
+- 文档、远程图片 URL、完整 thinking/effort、上游输出长度限制和 native compact 未完成。
 - 128000 是本地策略预算，不是测定的上游最大窗口；compact 是有损摘要。
 
 ## 测试
@@ -111,6 +114,8 @@ npm run test:files
 npm run test:http
 npm run test:routing
 npm run test:compact:cc
+npm run test:compact:images
+npm run test:compact:images -- --auto
 npm run test:compact:cc -- --auto
 npm run test:compact:opencode
 npm run test:compact:opencode -- --auto

@@ -1,13 +1,21 @@
 // A conservative heuristic for compaction scheduling, NOT a model tokenizer.
 // Count CJK/Unicode separately: chars/4 badly undercounts Chinese conversations.
+// Explicit per-image scheduling allowance, not measured/billed vision usage.
+export const imageTokenEstimate = 4096;
 export function estimateTokens(value) {
-  const text = typeof value === 'string' ? value : JSON.stringify(value ?? '');
+  let images = 0;
+  const text = typeof value === 'string' ? value : JSON.stringify(value ?? '', (key, item) => {
+    if (item && typeof item === 'object' && ['input_image', 'image'].includes(item.type)) {
+      images++; return { type: 'image_estimate', detail: item.detail ?? 'auto' };
+    }
+    return item;
+  });
   let ascii = 0, unicode = 0;
   for (const char of text) {
     if (char.codePointAt(0) < 128) ascii++;
     else unicode += char.codePointAt(0) > 0xffff ? 3 : 2;
   }
-  return Math.max(1, Math.ceil(ascii / 3) + unicode);
+  return Math.max(1, Math.ceil(ascii / 3) + unicode + images * imageTokenEstimate);
 }
 
 export function contextPolicy(env = process.env) {

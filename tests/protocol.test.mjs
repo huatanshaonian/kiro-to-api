@@ -47,7 +47,7 @@ test('final answer fixture converts to a complete end_turn response', () => {
 });
 
 test('unsupported content and model IDs fail explicitly', () => {
-  assert.throws(() => translateRequest({ messages: [{ role: 'user', content: [{ type: 'image' }] }] }), /Unsupported content/);
+  assert.throws(() => translateRequest({ messages: [{ role: 'user', content: [{ type: 'image' }] }] }), /Invalid inline image/);
   assert.throws(() => mapModel('made-up-model'), /Unsupported model/);
 });
 

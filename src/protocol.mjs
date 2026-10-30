@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { estimateTokens } from './context.mjs';
+import { inlineImage, imageToolResult } from './image-content.mjs';
 
 export const modelIds = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-4-5', 'claude-sonnet-4-5'];
 export function mapModel(model = 'claude-haiku-5-5') {
@@ -24,6 +25,7 @@ export function translateRequest(body, reasoningCache = new Map()) {
   const model = mapModel(body.model);
   const input = [];
   let toolResults = 0;
+  let imageCount = 0;
   let messageSystemChars = 0;
   for (const message of body.messages) {
     if (message.role === 'system') {
@@ -38,12 +40,22 @@ export function translateRequest(body, reasoningCache = new Map()) {
       continue;
     }
     if (!Array.isArray(message.content)) throw new Error('Message content must be text or content blocks.');
-    let text = '';
-    const flush = () => { if (text) input.push({ role: message.role, content: text }); text = ''; };
+    let text = ''; let parts = [];
+    const flush = () => {
+      if (parts.length) {
+        if (text) parts.push({ type: 'input_text', text });
+        input.push({ role: message.role, content: parts });
+      } else if (text) input.push({ role: message.role, content: text });
+      text = ''; parts = [];
+    };
     const restored = new Set();
     for (const block of message.content) {
       if (block.type === 'text') text += block.text ?? '';
-      else if (block.type === 'tool_use') {
+      else if (block.type === 'image') {
+        if (message.role !== 'user') throw new Error('Image input requires user role.');
+        if (text) parts.push({ type: 'input_text', text });
+        text = ''; parts.push(inlineImage(block)); imageCount++;
+      } else if (block.type === 'tool_use') {
         flush();
         if (message.role !== 'assistant') throw new Error('tool_use must be an assistant content block.');
         if (!block.id || !block.name) throw new Error('tool_use requires id and name.');
@@ -55,9 +67,8 @@ export function translateRequest(body, reasoningCache = new Map()) {
       } else if (block.type === 'tool_result') {
         if (message.role !== 'user' || !block.tool_use_id) throw new Error('tool_result requires user role and tool_use_id.');
         flush(); toolResults++;
-        const output = textContent(block.content);
-        input.push({ type: 'function_call_output', call_id: block.tool_use_id,
-          output: block.is_error ? `Tool execution error: ${output}` : output });
+        const result = imageToolResult(block);
+        input.push(...result.items); imageCount += result.imageCount;
       } else if (block.type === 'thinking' || block.type === 'redacted_thinking') {
         // Native reasoning envelopes are held server-side by tool-call ID.
       } else throw new Error(`Unsupported content block: ${block.type}`);
@@ -77,7 +88,7 @@ export function translateRequest(body, reasoningCache = new Map()) {
     leadingSystemMessages.push(message.content);
   }
   const estimatedInputTokens = estimateTokens({ instructions, input, tools }) + input.length * 8 + tools.length * 16;
-  return { model, instructions, input, tools, estimatedInputTokens, toolResults,
+  return { model, instructions, input, tools, estimatedInputTokens, toolResults, imageCount,
     systemChars: instructions.length + messageSystemChars,
     prefixHash: crypto.createHash('sha256').update(JSON.stringify({ model: body.model, instructions,
       systemMessages: leadingSystemMessages, tools })).digest('hex') };

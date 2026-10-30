@@ -10,6 +10,9 @@ const root = dataRoot;
 const liveRoot = path.dirname(fileURLToPath(import.meta.url));
 fs.mkdirSync(testResultsRoot, { recursive: true });
 const automatic = process.argv.includes('--auto');
+const imageMode = process.argv.includes('--image');
+const imagePath = path.join(liveRoot, '..', 'fixtures', 'vision.png');
+const imageCode = imageMode ? fs.readFileSync(path.join(liveRoot, '..', 'fixtures', 'vision-code.txt'), 'utf8').trim() : null;
 const state = await ensureGateway();
 const key = fs.readFileSync(state.keyPath, 'utf8').trim();
 const output = path.join(testResultsRoot, `cc-compact-${Date.now()}`);
@@ -20,7 +23,7 @@ const lookupKey = `compact_${crypto.randomBytes(6).toString('hex')}`;
 const value = `after_compact_${crypto.randomBytes(10).toString('hex')}`;
 const mcpPath = path.join(output, 'mcp.json'), callLog = path.join(output, 'mcp-calls.jsonl');
 fs.writeFileSync(mcpPath, JSON.stringify({ mcpServers: { probe: { command: process.execPath,
-  args: [path.join(liveRoot, 'fake-mcp.mjs')], env: { PROBE_EXPECTED_KEY: lookupKey, PROBE_RETURN_VALUE: value, PROBE_CALL_LOG: callLog } } } }));
+  args: [path.join(liveRoot, 'fake-mcp.mjs')], env: { PROBE_EXPECTED_KEY: lookupKey, PROBE_RETURN_VALUE: value, PROBE_CALL_LOG: callLog, ...(imageMode ? { PROBE_IMAGE_PATH: imagePath } : {}) } } } }));
 
 async function cc(name, prompt, first = false) {
   const args = [path.join(sourceRoot, 'cc-kiro.mjs'), '--setting-sources', '', '-p', '--output-format', 'stream-json', '--verbose',
@@ -50,21 +53,23 @@ try {
   const prompt = `We are testing conversation continuity. Preserve these exact facts and the pending task when summarizing. ` +
     `Immutable constraint: do not modify any files. Pending task: after compaction, look up key ${lookupKey} using lookup_probe and report its value. ` +
     `START=${facts.START}\n${filler}\nMIDDLE=${facts.MIDDLE}\n${filler}\nEND=${facts.END}\n` +
-    'For now only reply RECORDED. Do not call any tools yet.';
+    (imageMode ? 'Before compaction, call lookup_probe on server probe now with the pending lookup key. Its result includes a picture. Report both its value field and the exact code printed in the image. Do not call other tools.' : 'For now only reply RECORDED. Do not call any tools yet.');
   const before = await cc('01-long-context', prompt, true);
+  if (imageMode && !before.result.result?.includes(imageCode)) throw new Error('The pre-compact image pixels were not read correctly.');
   const compact = automatic ? { events: [] } : await cc('02-compact', '/compact Preserve START, MIDDLE, END exactly, the immutable constraint, and the pending lookup task including its exact key.');
-  const after = await cc('03-after-compact', 'Continue the pending lookup task now. Reply with JSON containing START, MIDDLE, END, constraint, and toolValue.');
+  const after = await cc('03-after-compact', 'Continue the pending lookup task now. Reply with JSON containing START, MIDDLE, END, constraint, toolValue' + (imageMode ? ', and imageCode.' : '.'));
   const boundaries = [...before.events, ...compact.events, ...after.events].filter(event => event.type === 'system' && event.subtype === 'compact_boundary');
   if (!boundaries.length) throw new Error('No actual Claude Code compact_boundary was observed.');
   const text = after.result.result ?? '';
   const calls = fs.existsSync(callLog) ? fs.readFileSync(callLog, 'utf8').trim().split('\n').map(JSON.parse) : [];
   if (!Object.values(facts).every(fact => text.includes(fact)) || !text.includes(value) || !calls.some(call => call.valid))
     throw new Error('Facts or external tool result were lost after compaction.');
-  const summary = { ok: true, mode: automatic ? 'auto-threshold-10-percent' : 'manual', compactBoundaries: boundaries, factsRetained: true, toolAfterCompactPassed: true,
+  if (imageMode && !text.includes(imageCode)) throw new Error('Image code missing after compaction.');
+  const summary = { ok: true, imageMode, imageBeforeCompactVerified: imageMode, imageAfterCompactVerified: imageMode, mode: automatic ? 'auto-threshold-10-percent' : 'manual', compactBoundaries: boundaries, factsRetained: true, toolAfterCompactPassed: true,
     inputCharacters: prompt.length, session, outputDirectory: output };
-  fs.writeFileSync(path.join(root, automatic ? 'latest-cc-auto-compact-test.json' : 'latest-cc-compact-test.json'), JSON.stringify(summary, null, 2)); console.log(JSON.stringify(summary));
+  fs.writeFileSync(path.join(root, imageMode ? (automatic ? 'latest-cc-image-auto-compact-test.json' : 'latest-cc-image-compact-test.json') : (automatic ? 'latest-cc-auto-compact-test.json' : 'latest-cc-compact-test.json')), JSON.stringify(summary, null, 2)); console.log(JSON.stringify(summary));
 } catch (error) {
   const summary = { ok: false, error: error.message, session, outputDirectory: output };
-  fs.writeFileSync(path.join(root, automatic ? 'latest-cc-auto-compact-test.json' : 'latest-cc-compact-test.json'), JSON.stringify(summary, null, 2));
+  fs.writeFileSync(path.join(root, imageMode ? (automatic ? 'latest-cc-image-auto-compact-test.json' : 'latest-cc-image-compact-test.json') : (automatic ? 'latest-cc-auto-compact-test.json' : 'latest-cc-compact-test.json')), JSON.stringify(summary, null, 2));
   console.error(JSON.stringify(summary)); process.exitCode = 1;
 }

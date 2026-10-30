@@ -20,6 +20,11 @@ bootstrap 使用仓库内 `assets/bootstrap/.kiro/agents/protocol-probe.json`，
 reasoning 仅按模型与调用 ID 恢复。客户端 compact 后被移除的调用不会
 被重新补入历史。
 
+`image-content.mjs` 将图片工具结果保留为文字输出及带 call_id 标注的
+不可信图片附件；直接内嵌于 function_call_output 的图片虽被上游接受，
+但视觉探测未读出像素，因此采用已验证的用户图片输入。原始图片字节不省略，
+相邻文字与工具关联保留。估算上下文时用显式图片预算替代 base64 字符数。
+
 `manage.mjs` 管理网关进程；安装标识由仓库绝对路径派生，防止不同检出
 目录或旧安装被误认为当前服务。OpenCode 使用有独立密码的本机服务，
 等待项目 MCP catalog 后再启动客户端，并在客户端退出后清理服务。

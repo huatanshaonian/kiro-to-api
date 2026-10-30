@@ -26,8 +26,8 @@ const limitations = {
   systemRole: 'Forwarded as leading user-message context; upstream rejects custom system instructions.',
   cache: 'Upstream-managed and not reported; Anthropic cache_control markers are not translated.',
   tokenUsage: 'Estimated from text length unless reported upstream; not Kiro billing.',
-  supported: ['text', 'custom function tools', 'tool results', 'SSE text/tool streams'],
-  notImplemented: ['images/documents', 'server tools', 'prompt-cache control', 'max_tokens enforcement', 'full thinking/context-management compatibility']
+  supported: ['text', 'inline base64 images', 'custom function tools', 'tool results', 'SSE text/tool streams'],
+  notImplemented: ['documents', 'remote image URLs', 'server tools', 'prompt-cache control', 'max_tokens enforcement', 'full thinking/context-management compatibility']
 };
 function json(response, status, body, headers = {}) {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'x-kiro-gateway': 'local-v1', ...headers });
@@ -132,7 +132,7 @@ const server = http.createServer(async (request, response) => {
       queuedMs, messageCount: body.messages.length, estimatedInputTokens: spec.estimatedInputTokens,
       nativeUsage: adapter.nativeUsage,
       systemChars: spec.systemChars, tools: spec.tools.map(tool => tool.name),
-      toolResultsReceived: spec.toolResults, toolCallsReturned: adapter.blocks.filter(block => block.type === 'tool_use').length,
+      toolResultsReceived: spec.toolResults, imageCount: spec.imageCount, toolCallsReturned: adapter.blocks.filter(block => block.type === 'tool_use').length,
       prefixHash: spec.prefixHash, prefixMetricVersion: 2, nativeToolExecutions: native.nativeToolExecutions,
       upstreamRequestId: native.requestId, kiroCredits: adapter.nativeUsage?.['kiro:credits']?.value ?? null,
       cacheReadTokens: adapter.nativeUsage?.cache_read_input_tokens ?? null,

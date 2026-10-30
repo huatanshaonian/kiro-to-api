@@ -16,7 +16,9 @@ for await (const line of lines) {
   else if (message.method === 'tools/call') {
     const valid = message.params.name === 'lookup_probe' && message.params.arguments?.key === process.env.PROBE_EXPECTED_KEY;
     fs.appendFileSync(process.env.PROBE_CALL_LOG, JSON.stringify({ name: message.params.name, arguments: message.params.arguments, valid }) + '\n');
-    reply(message.id, { content: [{ type: 'text', text: JSON.stringify(valid ? { value: process.env.PROBE_RETURN_VALUE } : { error: 'Unknown key' }) }], isError: !valid });
+    const content = [{ type: 'text', text: JSON.stringify(valid ? { value: process.env.PROBE_RETURN_VALUE } : { error: 'Unknown key' }) }];
+    if (valid && process.env.PROBE_IMAGE_PATH) content.push({ type: 'image', mimeType: 'image/png', data: fs.readFileSync(process.env.PROBE_IMAGE_PATH).toString('base64') });
+    reply(message.id, { content, isError: !valid });
   } else if (message.method === 'ping') reply(message.id, {});
   else process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: message.id, error: { code: -32601, message: 'Method not found' } }) + '\n');
 }

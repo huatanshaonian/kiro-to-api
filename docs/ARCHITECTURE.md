@@ -11,7 +11,12 @@ Kiro 管理；不会读取或持久化账号 token。
 bootstrap 使用仓库内 `assets/bootstrap/.kiro/agents/protocol-probe.json`，
 其工具、资源、MCP 和 powers 均禁用，权限规则为 deny。
 
-每个模型请求仍启动独立 Kiro 子进程；历史由调用者提供。关联的加密
+启用独立审批时，`approval-router.mjs` 在 Kiro 协议转换和推理队列之前，
+将具有原生 classifier 特征的专用模型请求转到 DeepSeek。认证分离，
+原始判定交由 CC 解析；请求日志记录 route 和 usage，不记录对话。
+详见 [审批路由](APPROVAL-ROUTING.md)。
+
+每个 Kiro 模型请求仍启动独立 Kiro 子进程；历史由调用者提供。关联的加密
 reasoning 仅按模型与调用 ID 恢复。客户端 compact 后被移除的调用不会
 被重新补入历史。
 

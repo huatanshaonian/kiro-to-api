@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot } from '../src/paths.mjs';
 const checkout = path.resolve(process.argv[2] ?? projectRoot);
-const forbidden = /^(local-api-key|auth\.json|credentials\.json|gateway-state\.json|reasoning-state\.json|cc-routing-settings\.json|requests\.jsonl)$/i;
+const forbidden = /^(approval-routing\.local\.json|local-api-key|auth\.json|credentials\.json|gateway-state\.json|reasoning-state\.json|cc-routing-settings\.json|requests\.jsonl)$/i;
 const secrets = [/sk-ant-(?:api|sid)[A-Za-z0-9_-]{20,}/, /AKIA[A-Z0-9]{16}/, /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/];
 const files = [];
 function visit(dir) {

@@ -6,7 +6,8 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { modelIds, translateRequest, AnthropicStream } from './protocol.mjs';
 import { infer } from './native-bridge.mjs';
-import { contextPolicy, checkContext } from './context.mjs';
+import { contextPolicy, checkContext, estimateTokens } from './context.mjs';
+import { approvalModel, approvalConfigName, isApprovalModel, assertApprovalRequest, loadApprovalConfig, forwardApproval } from './approval-router.mjs';
 import { ReasoningStore } from './reasoning-store.mjs';
 import { RequestQueue } from './request-queue.mjs';
 
@@ -20,6 +21,7 @@ const reasoningCache = new ReasoningStore(path.join(root, 'reasoning-state.json'
 const policy = contextPolicy();
 const queue = new RequestQueue();
 let inflight = 0;
+let approvalInflight = 0;
 const limitations = {
   systemRole: 'Forwarded as leading user-message context; upstream rejects custom system instructions.',
   cache: 'Upstream-managed and not reported; Anthropic cache_control markers are not translated.',
@@ -48,10 +50,32 @@ async function readJson(request) {
 }
 function audit(record) { fs.appendFileSync(logPath, JSON.stringify({ at: new Date().toISOString(), ...record }) + '\n'); }
 
+async function approval(body, request, response, tokenCountOnly) {
+  const requestId = crypto.randomUUID(); const started = Date.now(); const controller = new AbortController();
+  response.on('close', () => { if (!response.writableEnded) controller.abort(); });
+  approvalInflight++;
+  try {
+    assertApprovalRequest(body);
+    const config = loadApprovalConfig(root);
+    if (!config.enabled) throw Object.assign(new Error('DeepSeek approval routing is not enabled.'), { status: 503 });
+    if (tokenCountOnly) return json(response, 200, { input_tokens: estimateTokens(body) }, { 'x-kiro-token-usage': 'estimated' });
+    const result = await forwardApproval(body, config, { signal: controller.signal, headers: request.headers });
+    audit({ requestId, route: 'deepseek-approval', model: approvalModel, requestedModel: body.model,
+      status: result.status, elapsedMs: Date.now() - started, usage: result.usage, thinking: 'disabled', nativeToolExecutions: 0 });
+    if (!response.destroyed) { response.writeHead(result.status, { ...result.headers, 'x-kiro-gateway': 'local-v1', 'x-kiro-route': 'deepseek-approval' }); response.end(result.raw); }
+  } catch (error) {
+    audit({ requestId, route: 'deepseek-approval', model: approvalModel, status: error.status ?? 502,
+      error: error.message, elapsedMs: Date.now() - started, nativeToolExecutions: 0 });
+    if (!response.destroyed) json(response, error.status ?? 502, { type: 'error', error: {
+      type: error.status === 400 ? 'invalid_request_error' : 'api_error', message: error.message } });
+  } finally { approvalInflight--; }
+}
+
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1');
   if (url.pathname === '/health' || (request.method === 'HEAD' && url.pathname === '/api/hello')) {
-    return json(response, 200, { ok: true, service: 'kiro-anthropic-local', revision: 3, installationId, inflight, queued: queue.waiting.length });
+    return json(response, 200, { ok: true, service: 'kiro-anthropic-local', revision: 4, installationId, inflight: inflight + approvalInflight, queued: queue.waiting.length,
+      approvalRouting: { configured: fs.existsSync(path.join(root, approvalConfigName)), model: approvalModel, inflight: approvalInflight } });
   }
   if (!authorized(request)) {
     audit({ status: 401, method: request.method, path: url.pathname, localAuthenticationRejected: true });
@@ -63,14 +87,18 @@ const server = http.createServer(async (request, response) => {
       has_more: false, first_id: modelIds[0], last_id: modelIds.at(-1) });
   }
   if (url.pathname === '/shutdown' && request.method === 'POST') {
-    if (inflight || queue.waiting.length) return json(response, 409, { error: 'Requests are still running.' });
+    if (inflight || approvalInflight || queue.waiting.length) return json(response, 409, { error: 'Requests are still running.' });
     json(response, 200, { stopped: true }); server.close(); return;
   }
   if (request.method !== 'POST' || !['/v1/messages', '/v1/messages/count_tokens'].includes(url.pathname)) {
     return json(response, 404, { type: 'error', error: { type: 'not_found_error', message: 'Unknown endpoint.' } });
   }
   let body; let spec;
-  try { body = await readJson(request); spec = translateRequest(body, reasoningCache); }
+  try {
+    body = await readJson(request);
+    if (isApprovalModel(body.model)) return await approval(body, request, response, url.pathname.endsWith('/count_tokens'));
+    spec = translateRequest(body, reasoningCache);
+  }
   catch (error) { return json(response, 400, { type: 'error', error: { type: 'invalid_request_error', message: error.message } }); }
   if (url.pathname.endsWith('/count_tokens')) return json(response, 200, { input_tokens: spec.estimatedInputTokens }, { 'x-kiro-token-usage': 'estimated' });
   try { checkContext(spec, policy); }
@@ -100,7 +128,7 @@ const server = http.createServer(async (request, response) => {
     const native = await infer(spec, event => adapter.accept(event), controller.signal);
     if (!adapter.finished) throw new Error('The model stream ended without a completed response.');
     reasoningCache.remember(spec.model, adapter.rawItems);
-    audit({ requestId, model: spec.model, status: 200, elapsedMs: Date.now() - started,
+    audit({ requestId, route: 'kiro', model: spec.model, status: 200, elapsedMs: Date.now() - started,
       queuedMs, messageCount: body.messages.length, estimatedInputTokens: spec.estimatedInputTokens,
       nativeUsage: adapter.nativeUsage,
       systemChars: spec.systemChars, tools: spec.tools.map(tool => tool.name),
@@ -113,7 +141,7 @@ const server = http.createServer(async (request, response) => {
     else json(response, 200, adapter.message(), { 'request-id': requestId, 'x-kiro-system-role': 'user-context',
       'x-kiro-cache-status': 'not-reported', 'x-kiro-token-usage': 'estimated' });
   } catch (error) {
-    audit({ requestId, model: spec.model, status: error.status ?? 502, error: error.message, elapsedMs: Date.now() - started });
+    audit({ requestId, route: 'kiro', model: spec.model, status: error.status ?? 502, error: error.message, elapsedMs: Date.now() - started });
     const type = error.status === 429 ? 'rate_limit_error' : error.status === 400 ? 'invalid_request_error' : error.status === 401 ? 'authentication_error' : 'api_error';
     const failure = { type: 'error', error: { type, message: error.message } };
     if (body.stream) { emit('error', failure); response.end(); }

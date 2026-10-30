@@ -37,6 +37,9 @@
 交互审批仍由客户端处理。OpenCode 无交互 `run` 若需要自动批准，由用户
 显式添加 `--auto`；启动器不默认添加。
 
+可选的 [CC 独立审批路由](docs/APPROVAL-ROUTING.md) 保留原生 auto mode，
+主对话走 Kiro、审批走 DeepSeek Flash；凭证仅从本机 provider 文件读取。
+
 ## C 盘运行版与 F 盘仓库并存
 
 已有的 C 盘运行版与 PATH 入口保留。仓库版本验证时使用另一个端口和
@@ -102,6 +105,7 @@ npm run audit
 ```powershell
 npm run probe
 npm run test:cc
+npm run test:approval
 npm run test:opencode
 npm run test:files
 npm run test:http

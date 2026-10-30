@@ -19,7 +19,7 @@ export function estimateTokens(value) {
 }
 
 export function contextPolicy(env = process.env) {
-  const contextTokens = Number(env.KIRO_GATEWAY_CONTEXT_TOKENS ?? 128000);
+  const contextTokens = Number(env.KIRO_GATEWAY_CONTEXT_TOKENS ?? 1000000);
   const reserveTokens = Number(env.KIRO_GATEWAY_RESERVE_TOKENS ?? 16000);
   if (!Number.isSafeInteger(contextTokens) || !Number.isSafeInteger(reserveTokens) || reserveTokens < 1024 || contextTokens <= reserveTokens + 1024)
     throw new Error('Invalid gateway context/reserve token budget.');

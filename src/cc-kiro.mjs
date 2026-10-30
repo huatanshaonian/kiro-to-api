@@ -14,7 +14,7 @@ const apiKey = fs.readFileSync(state.keyPath, 'utf8').trim();
 const routingEnv = { ANTHROPIC_BASE_URL: state.baseUrl, ANTHROPIC_API_KEY: apiKey,
   ANTHROPIC_AUTH_TOKEN: '', CLAUDE_CODE_OAUTH_TOKEN: '',
   CLAUDE_CODE_USE_BEDROCK: '0', CLAUDE_CODE_USE_VERTEX: '0', CLAUDE_CODE_USE_FOUNDRY: '0',
-  CLAUDE_CODE_AUTO_COMPACT_WINDOW: process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW ?? '100000' };
+  CLAUDE_CODE_AUTO_COMPACT_WINDOW: process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW ?? '1000000' };
 if (approval.enabled) Object.assign(routingEnv, {
   CLAUDE_CODE_AUTO_MODE_MODEL: approvalModel + '[1m]', CLAUDE_CODE_AUTO_MODE_SERVER: '0', ENABLE_TOOL_SEARCH: 'false' });
 const env = { ...process.env, ...routingEnv,

@@ -69,10 +69,10 @@ PowerShell 若因执行策略阻止 `npm.ps1`，可将示例中的 `npm` 换成
 | `CLAUDE_CLI_PATH` | Claude Code 完整路径；默认用户 `.local/bin/claude.exe` |
 | `OPENCODE_CLI_PATH` | OpenCode 完整路径；默认 npm 的 `@opencode/cli` 安装位置 |
 | `KIRO_GATEWAY_NODE` | `.cmd` 入口使用的 Node 完整路径 |
-| `KIRO_GATEWAY_CONTEXT_TOKENS` | 本地上下文预算，默认 128000 |
+| `KIRO_GATEWAY_CONTEXT_TOKENS` | 本地上下文预算，默认 1000000 |
 | `KIRO_GATEWAY_RESERVE_TOKENS` | 输出预留预算，默认 16000 |
 | `KIRO_GATEWAY_TIMEOUT_MS` | 主请求超时，默认 300000 毫秒 |
-| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | CC 压缩窗口，启动器默认 100000 |
+| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | CC 压缩窗口，启动器默认 1000000（CC 会扣除内部预留空间） |
 
 调整配置后须重启相应服务与客户端。密钥由首次启动自动生成，不应提交到 Git。
 
@@ -90,7 +90,8 @@ PowerShell 若因执行策略阻止 `npm.ps1`，可将示例中的 `npm` 换成
 - 图片工具结果保留调用关联、文字及原图，原图标注为不可信工具附件后投影到上游用户图片输入。
 - 图片上下文按每张 4096 tokens 的本地估算预留，不把 base64 计为普通文本；不是测定的视觉用量。
 - 文档、远程图片 URL、完整 thinking/effort、上游输出长度限制和 native compact 未完成。
-- 128000 是本地策略预算，不是测定的上游最大窗口；compact 是有损摘要。
+- 1000000 是本地策略预算，不是测定的上游最大窗口；compact 是有损摘要。
+- 生产环境应通过 `KIRO_CLI_PATH` 固定已验证的实际 CLI 版本，避免更新入口的下载/替换失败导致 502。
 
 ## 测试
 

@@ -30,7 +30,7 @@ async function cc(name, prompt, first = false) {
     '--tools', '', '--strict-mcp-config', '--mcp-config', mcpPath, '--allowedTools', 'mcp__probe__lookup_probe',
     '--max-turns', '4', ...(first ? ['--session-id', session] : ['--resume', session])];
   const child = spawn(process.execPath, args, { cwd: output, env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(output, 'config'),
-    ...(automatic ? { CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: '10' } : {}) },
+    ...(automatic ? { CLAUDE_CODE_AUTO_COMPACT_WINDOW: '100000', CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: '10' } : {}) },
     stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
   let stdout = '', stderr = '';
   child.stdout.on('data', chunk => stdout += chunk); child.stderr.on('data', chunk => stderr += chunk);

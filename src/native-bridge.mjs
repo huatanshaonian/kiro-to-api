@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn, execFile } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { SseDecoder } from './protocol.mjs';
+import { startupFailure } from './native-errors.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const bootstrapRoot = path.join(projectRoot, 'assets', 'bootstrap');
@@ -61,13 +62,15 @@ export async function infer(spec, onEvent, signal) {
   const abort = () => terminate();
   signal?.addEventListener('abort', abort, { once: true });
   try {
-    await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
+    const exit = await new Promise((resolve, reject) => {
+      child.once('error', reject); child.once('close', (code, signal) => resolve({ code, signal }));
+    });
     pump();
     if (signal?.aborted) throw Object.assign(new Error('Client disconnected.'), { status: 499 });
     if (timedOut) throw Object.assign(new Error('Kiro inference timed out.'), { status: 504 });
     if (parseError) throw parseError;
     if (!status && fs.existsSync(files.status)) status = JSON.parse(fs.readFileSync(files.status, 'utf8'));
-    if (!status) throw new Error(`No model response was captured. ${stderr.slice(-500)}`);
+    if (!status) throw startupFailure(exit, stderr);
     if (status.status !== 200) {
       const raw = fs.existsSync(files.response) ? fs.readFileSync(files.response, 'utf8') : '';
       let message = raw;

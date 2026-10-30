@@ -8,6 +8,7 @@ import { ReasoningStore } from '../src/reasoning-store.mjs';
 import { RequestQueue } from '../src/request-queue.mjs';
 import { translateRequest, AnthropicStream, SseDecoder } from '../src/protocol.mjs';
 import { mcpCatalogReady } from '../src/mcp-readiness.mjs';
+import { startupFailure } from '../src/native-errors.mjs';
 
 test('MCP catalog presence is insufficient until every required server connects', () => {
   assert.equal(mcpCatalogReady({ data: [{ name: 'probe', status: { status: 'pending' } }] }, ['probe']), false);
@@ -72,4 +73,20 @@ test('truncated SSE and unknown argument IDs fail instead of corrupting tool arg
   assert.throws(() => decoder.finish(), /incomplete/);
   const adapter = new AnthropicStream('test', 1);
   assert.throws(() => adapter.accept({ type: 'response.function_call_arguments.delta', item_id: 'missing', delta: '{}' }), /unknown/);
+});
+
+test('default context budget permits long input instead of retaining the prototype 128K cap', () => {
+  const policy = contextPolicy({});
+  assert.equal(policy.contextTokens, 1000000);
+  assert.equal(policy.inputTokens, 984000);
+  assert.doesNotThrow(() => checkContext({ estimatedInputTokens: 900000 }, policy));
+  assert.throws(() => checkContext({ estimatedInputTokens: 984001 }, policy), /prompt is too long/);
+});
+
+test('startup errors preserve access-denied cause and exit code ahead of elevated privilege warning', () => {
+  const error = startupFailure({ code: 1 }, 'Warning: Kiro CLI is running as Administrator.\nHide this warning: kiro-cli settings app.warnOnElevatedPrivileges false\nerror: 拒绝访问。 (os error 5)\n');
+  assert.equal(error.status, 502);
+  assert.match(error.message, /exit 1/);
+  assert.match(error.message, /拒绝访问/);
+  assert.doesNotMatch(error.message, /Administrator/);
 });

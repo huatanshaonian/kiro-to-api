@@ -16,7 +16,7 @@ const marker = 'APPROVAL_' + crypto.randomBytes(8).toString('hex');
 const auditFile = path.join(dataRoot, 'requests.jsonl');
 const before = fs.existsSync(auditFile) ? fs.readFileSync(auditFile, 'utf8').length : 0;
 const prompt = `Use Bash exactly once to invoke node with -e. Its JavaScript must call fs.writeFileSync to create approval-marker.txt containing ${marker} in the current directory. Do not use shell redirection or shell builtins. Do not change any other files. If permission is denied, stop. After success reply exactly APPROVAL_OK.`;
-const child = spawn(process.execPath, [path.join(sourceRoot, 'cc-kiro.mjs'), '--setting-sources', '',
+const child = spawn(process.execPath, [path.join(sourceRoot, 'cc-kiro.mjs'), '--model', 'claude-haiku-5-5', '--setting-sources', '',
   '--permission-mode', 'auto', '--debug-file', debug, '--tools', 'Bash', '--strict-mcp-config', '--mcp-config', emptyMcp,
   '--max-turns', '3', '--output-format', 'json', '--no-session-persistence', '-p', prompt],
   { cwd: dir, env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'cc-config') }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });

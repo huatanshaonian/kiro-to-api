@@ -12,7 +12,9 @@ const headers = { 'x-api-key': key, 'Content-Type': 'application/json' };
 const post = body => fetch(state.baseUrl + '/v1/messages', { method: 'POST', headers, body: JSON.stringify(body) });
 assert.equal((await fetch(state.baseUrl + '/v1/models')).status, 401);
 assert.equal((await post({ messages: [] })).status, 400);
-const oversized = await post({ model: 'claude-haiku-5-5', messages: [{ role: 'user', content: '中文'.repeat(60000) }] });
+const protocol = await (await fetch(state.baseUrl + '/protocol', { headers })).json();
+// Exceed the configured local estimate, including the new 1M budget, before inference.
+const oversized = await post({ model: 'claude-haiku-5-5', messages: [{ role: 'user', content: '中文'.repeat(Math.ceil(protocol.contextPolicy.inputTokens / 4) + 1024) }] });
 assert.equal(oversized.status, 400); assert.match(await oversized.text(), /prompt is too long/);
 const controller = new AbortController();
 const response = await fetch(state.baseUrl + '/v1/messages', { method: 'POST', headers, signal: controller.signal,

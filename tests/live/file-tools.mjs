@@ -21,7 +21,7 @@ for (const client of ['cc', 'opencode']) {
   let server, executable, args, env;
   if (client === 'cc') {
     executable = process.execPath;
-    args = [path.join(sourceRoot, 'cc-kiro.mjs'), '--setting-sources', '', '-p', prompt, '--tools', 'Read,Write', '--allowedTools', 'Read', 'Write',
+    args = [path.join(sourceRoot, 'cc-kiro.mjs'), '--model', 'claude-haiku-5-5', '--setting-sources', '', '-p', prompt, '--tools', 'Read,Write', '--allowedTools', 'Read', 'Write',
       '--strict-mcp-config', '--mcp-config', emptyMcp, '--output-format', 'json', '--no-session-persistence', '--max-turns', '5'];
     env = { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') };
   } else {

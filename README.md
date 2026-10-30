@@ -22,10 +22,10 @@
 .\bin\opencode-kiro.cmd
 ```
 
-默认模型是 Haiku 5.5。指定模型：
+Claude Code 默认模型是 Opus 5.5，OpenCode 默认 Haiku 5.5。真实客户端验收脚本显式指定 Haiku 5.5，避免随日常默认值变化而增加测试成本。指定模型：
 
 ```powershell
-.\bin\cc-kiro.cmd --model claude-opus-5-5
+.\bin\cc-kiro.cmd --model claude-haiku-5-5
 .\bin\opencode-kiro.cmd --model kiro/claude-opus-5-5
 .\bin\kiro-api.cmd status
 .\bin\kiro-api.cmd stop

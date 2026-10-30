@@ -17,7 +17,7 @@ fs.writeFileSync(path.join(configDir, 'settings.json'), JSON.stringify({ env: {
   ANTHROPIC_BASE_URL: 'http://127.0.0.1:9', ANTHROPIC_AUTH_TOKEN: 'intentionally-wrong-routing-test-token'
 } }));
 const expected = `ROUTING_OK_${crypto.randomBytes(5).toString('hex')}`;
-const child = spawn(process.execPath, [path.join(sourceRoot, 'cc-kiro.mjs'), '--setting-sources', 'user',
+const child = spawn(process.execPath, [path.join(sourceRoot, 'cc-kiro.mjs'), '--model', 'claude-haiku-5-5', '--setting-sources', 'user',
   '-p', `Reply with exactly ${expected}. Do not call tools.`, '--tools', '', '--strict-mcp-config',
   '--output-format', 'json', '--no-session-persistence', '--max-turns', '1'], {
   cwd: output, env: { ...process.env, CLAUDE_CONFIG_DIR: configDir },

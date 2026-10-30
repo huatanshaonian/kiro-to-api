@@ -26,7 +26,7 @@ fs.writeFileSync(mcpPath, JSON.stringify({ mcpServers: { probe: { command: proce
   args: [path.join(liveRoot, 'fake-mcp.mjs')], env: { PROBE_EXPECTED_KEY: lookupKey, PROBE_RETURN_VALUE: value, PROBE_CALL_LOG: callLog, ...(imageMode ? { PROBE_IMAGE_PATH: imagePath } : {}) } } } }));
 
 async function cc(name, prompt, first = false) {
-  const args = [path.join(sourceRoot, 'cc-kiro.mjs'), '--setting-sources', '', '-p', '--output-format', 'stream-json', '--verbose',
+  const args = [path.join(sourceRoot, 'cc-kiro.mjs'), '--model', 'claude-haiku-5-5', '--setting-sources', '', '-p', '--output-format', 'stream-json', '--verbose',
     '--tools', '', '--strict-mcp-config', '--mcp-config', mcpPath, '--allowedTools', 'mcp__probe__lookup_probe',
     '--max-turns', '4', ...(first ? ['--session-id', session] : ['--resume', session])];
   const child = spawn(process.execPath, args, { cwd: output, env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(output, 'config'),

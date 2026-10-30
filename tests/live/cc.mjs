@@ -26,7 +26,7 @@ fs.writeFileSync(mcpPath, JSON.stringify({ mcpServers: { probe: { command: proce
 async function cc(name, prompt, extra) {
   const args = [...(full ? ['--setting-sources', ''] : ['--bare']), '-p', prompt, '--tools', '', '--output-format', 'json', '--no-session-persistence',
     '--max-turns', '3', '--strict-mcp-config', ...extra];
-  const child = spawn(process.execPath, [path.join(sourceRoot, 'cc-kiro.mjs'), ...args],
+  const child = spawn(process.execPath, [path.join(sourceRoot, 'cc-kiro.mjs'), '--model', 'claude-haiku-5-5', ...args],
     { cwd: output, env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(output, 'cc-config') }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
   let stdout = ''; let stderr = '';
   child.stdout.on('data', chunk => { stdout += chunk; });
